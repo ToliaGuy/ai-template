@@ -11,13 +11,14 @@ This is the consolidated guide for frontend development, covering React patterns
 3. [State Management](#state-management)
 4. [Mutations & Forms](#mutations--forms)
 5. [Styling with Tailwind](#styling-with-tailwind)
-6. [Component Patterns](#component-patterns)
-7. [Page Templates](#page-templates)
-8. [Empty, Loading, and Error States](#empty-loading-and-error-states)
-9. [Form Design](#form-design)
-10. [Navigation & Layout](#navigation--layout)
-11. [Accessibility](#accessibility)
-12. [Design System Reference](#design-system-reference)
+6. [UI Components with shadcn/ui](#ui-components-with-shadcnui)
+7. [Component Patterns](#component-patterns)
+8. [Page Templates](#page-templates)
+9. [Empty, Loading, and Error States](#empty-loading-and-error-states)
+10. [Form Design](#form-design)
+11. [Navigation & Layout](#navigation--layout)
+12. [Accessibility](#accessibility)
+13. [Design System Reference](#design-system-reference)
 
 ---
 
@@ -26,6 +27,7 @@ This is the consolidated guide for frontend development, covering React patterns
 The frontend uses:
 - **Vite + React** - Fast dev server, simple SPA
 - **Effect Atom + AtomHttpApi** - Reactive data loading from the HTTP API
+- **shadcn/ui** - UI component library (built on Radix UI primitives + Tailwind CSS)
 - **Tailwind CSS** - Utility-first CSS framework
 
 **Data Flow:**
@@ -42,9 +44,11 @@ src/
 ├── atoms/               # Atom definitions
 │   └── items.ts         # Feature-specific atoms (families, derived)
 ├── components/          # Shared components
-│   ├── ui/              # Base UI components (Button, Card, etc.)
+│   ├── ui/              # shadcn/ui components (Button, Card, Dialog, etc.)
 │   ├── layout/          # AppLayout, Sidebar, Header, Breadcrumbs
 │   └── [feature]/       # Feature-specific components
+├── lib/
+│   └── utils.ts         # cn() utility (tailwind-merge + clsx)
 ├── routes/              # Page components
 │   ├── items/
 │   │   ├── ItemsList.tsx
@@ -439,25 +443,189 @@ function Button({ children, variant = "primary" }: Props) {
 }
 ```
 
-### Use clsx for Conditional Classes
+### Use `cn()` for Conditional Classes
+
+Use the `cn()` utility (from `src/lib/utils.ts`) which combines `clsx` and `tailwind-merge` to handle Tailwind class conflicts:
 
 ```typescript
-import { clsx } from "clsx"
+import { cn } from "@/lib/utils"
 
-function Button({ disabled, loading, className, children }: Props) {
+function CustomCard({ className, children }: Props) {
   return (
-    <button
-      className={clsx(
-        "px-4 py-2 rounded-md font-medium",
-        "bg-blue-600 text-white hover:bg-blue-700",
-        "disabled:opacity-50 disabled:cursor-not-allowed",
-        loading && "animate-pulse",
+    <div
+      className={cn(
+        "rounded-lg border bg-card p-6 shadow-sm",
         className
       )}
-      disabled={disabled || loading}
     >
       {children}
-    </button>
+    </div>
+  )
+}
+```
+
+---
+
+## UI Components with shadcn/ui
+
+### Overview
+
+Use **shadcn/ui** as the primary UI component library. shadcn/ui provides copy-paste components built on [Radix UI](https://www.radix-ui.com/) primitives and styled with Tailwind CSS. Components are added directly to `src/components/ui/` — they are not installed as a package dependency, so you own the code and can customize freely.
+
+### Adding Components
+
+Use the CLI to add components:
+
+```bash
+pnpm dlx shadcn@latest add button        # Add a single component
+pnpm dlx shadcn@latest add dialog table   # Add multiple components
+pnpm dlx shadcn@latest add --all          # Add all components (not recommended)
+```
+
+Components are placed in `src/components/ui/` (e.g., `button.tsx`, `dialog.tsx`).
+
+### Usage
+
+Import from the local `ui/` directory:
+
+```typescript
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+```
+
+### Commonly Used Components
+
+| Component | Usage |
+|-----------|-------|
+| `Button` | All buttons — supports `variant` (default, secondary, destructive, outline, ghost, link) and `size` (default, sm, lg, icon) |
+| `Input` | Text inputs |
+| `Label` | Form field labels (accessible, pairs with inputs) |
+| `Dialog` | Modal dialogs (confirmations, forms) |
+| `Table` | Data tables |
+| `Card` | Content containers |
+| `Select` | Dropdowns |
+| `Badge` | Status indicators, tags |
+| `Skeleton` | Loading placeholders |
+| `Toast` / `Sonner` | Notifications |
+| `DropdownMenu` | Context menus, action menus |
+| `Sheet` | Slide-over panels |
+| `Form` | Form wrapper with react-hook-form integration |
+
+### Key Rules
+
+1. **Always use shadcn/ui components** instead of writing custom base components (buttons, inputs, dialogs, tables, etc.)
+2. **Customize via Tailwind** — use `className` prop to extend styles, or edit the component source in `src/components/ui/`
+3. **Use `cn()` utility** (from `src/lib/utils.ts`) instead of `clsx` for merging classes — it handles Tailwind conflicts via `tailwind-merge`
+4. **Compose, don't wrap** — use shadcn/ui components directly rather than creating unnecessary wrapper components
+5. **Follow shadcn/ui conventions** — use the `variant` and `size` props on components that support them
+
+### Example: Form with shadcn/ui
+
+```typescript
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
+function CreateItemForm() {
+  const [name, setName] = useState("")
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Create Item</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Item Name</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g., My Item"
+            />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" type="button" onClick={() => navigate(-1)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Creating..." : "Create Item"}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
+```
+
+### Example: Data Table with shadcn/ui
+
+```typescript
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+
+function ItemsTable({ items }: { items: Item[] }) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Name</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {items.map((item) => (
+          <TableRow key={item.id}>
+            <TableCell className="font-medium">{item.name}</TableCell>
+            <TableCell>
+              <Badge variant={item.status === "active" ? "default" : "secondary"}>
+                {item.status}
+              </Badge>
+            </TableCell>
+            <TableCell className="text-right">
+              <Button variant="ghost" size="sm">Edit</Button>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  )
+}
+```
+
+### Example: Confirmation Dialog
+
+```typescript
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+
+function DeleteItemDialog({ onConfirm }: { onConfirm: () => void }) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="destructive" size="sm">Delete</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Are you sure?</DialogTitle>
+          <DialogDescription>
+            This action cannot be undone. This will permanently delete the item.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline">Cancel</Button>
+          <Button variant="destructive" onClick={onConfirm}>Delete</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 ```
@@ -471,8 +639,8 @@ function Button({ disabled, loading, className, children }: Props) {
 ```typescript
 // GOOD: Composition
 <Card>
-  <CardHeader><h2>Title</h2></CardHeader>
-  <CardBody><p>Content</p></CardBody>
+  <CardHeader><CardTitle>Title</CardTitle></CardHeader>
+  <CardContent><p>Content</p></CardContent>
 </Card>
 
 // BAD: Prop drilling

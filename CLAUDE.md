@@ -10,6 +10,7 @@ This is a full-stack TypeScript application using:
 - **Vite + React** - Frontend: fast dev server, simple SPA
 - **Effect HttpApi** - Type-safe HTTP API definition (HttpApiGroup, HttpApiEndpoint)
 - **Effect Atom + AtomHttpApi** - Reactive frontend data loading from the HTTP API
+- **shadcn/ui** - UI component library (Radix UI + Tailwind CSS)
 - **Tailwind CSS** - Utility-first styling
 
 ## Architecture
@@ -17,7 +18,7 @@ This is a full-stack TypeScript application using:
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      FRONTEND                                │
-│  Vite + React + Effect Atom + AtomHttpApi + Tailwind         │
+│  Vite + React + shadcn/ui + Effect Atom + AtomHttpApi        │
 │  Data loading via Effect Atom (useAtomValue, Result.match)   │
 └─────────────────────────────────────────────────────────────┘
                               │
@@ -109,7 +110,8 @@ All specifications and context documentation live in `specs/`.
 4. **Use `Result.match`** - handle loading/success/failure states
 5. **Use `Atom.family`** - parameterized atoms (e.g., per-ID queries)
 6. **Use `useState` for UI** - local form state, modals, toggles
-7. **Use Tailwind CSS** - no inline styles, use clsx for conditional classes
+7. **Use shadcn/ui components** - for all base UI (buttons, inputs, dialogs, tables, cards, etc.)
+8. **Use Tailwind CSS** - no inline styles, use `cn()` for conditional classes
 
 ### Effect Code Rules
 
